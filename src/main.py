@@ -1,8 +1,6 @@
 # TODO
-# 1) Add life span manager for model
 # 2) Add a ui for taking test data for prediction
-# 3) Process the data before passing it to the model
-# 4) Separate the model inference code into another sqlite_file_name
+# 4) Separate the model inference code into another file 
 # 5) Remove the hardcoded values and make them dynamic
 # 6) Fix the docker container
 

@@ -103,7 +103,7 @@ class PimaIndiansDiabetesClassifier:
         torch.save(self.model, '/root/documents/pima-classifier-fast-api/model/pima-classifier-model.pt')
 
 
-dataset = np.loadtxt('/root/documents/pima-classifier-fast-api/model/pima.csv', delimiter=',')
+dataset = np.loadtxt('/root/documents/pima-classifier-fast-api/data/pima.csv', delimiter=',')
 
 pima = PimaIndiansDiabetesClassifier(dataset,0,8)
 pima.find_correlation([0,1,2,3,4,5,6,7])
