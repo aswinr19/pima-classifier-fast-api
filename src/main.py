@@ -4,12 +4,16 @@
 # 5) Remove the hardcoded values and make them dynamic
 # 6) Fix the docker container
 
-
-from contextlib import asynccontextmanager
+from operator import delitem
+import os
 import torch
 import numpy as np 
 from typing import Annotated
-from fastapi import FastAPI, Depends, Query, HTTPException
+from fastapi.responses import HTMLResponse
+from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, Response, Request, Depends, Query, HTTPException
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from sklearn.preprocessing import StandardScaler
 
@@ -32,8 +36,17 @@ sqlite_url = f"sqlite:///{sqlite_file_name}"
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, connect_args=connect_args)
 
+#def create_db_and_tables():
+#    SQLModel.metadata.create_all(engine)
+
 def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+    print("Creating database tables...")
+    try:
+        SQLModel.metadata.create_all(engine)
+        print("Tables created successfully.")
+    except Exception as e:
+        print(f"Error creating tables: {e}")
+
 
 def get_session():
     with Session(engine) as session:
@@ -59,79 +72,91 @@ def diabetes_prediction_neural_net(x: list) -> dict:
     pred = model(tnsr)
 
     print(pred.item())
+    
+    return round(pred.item())
 
-    if pred.item() < 0.5:
-        return { "prediction": pred.item(), "result": "You have tested -ve for diabetes"}
-    else:
-        return { "prediction": pred.item(), "result": "You have tested +ve for diabetes"}
 
 model_version = "0.1.0"
 
 ml_models = {}
+mean = np.empty((1,8))
+std = np.empty((1,8))
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
+    if not os.path.exists(sqlite_file_name):
+        create_db_and_tables()
+
+    mean = np.loadtxt('/root/documents/pima-classifier-fast-api/data/mean.csv')
+    std = np.loadtxt('/root/documents/pima-classifier-fast-api/data/std.csv')
+
+    print(mean)
+    print(std)
+
     ml_models["diabetes_nn"] = diabetes_prediction_neural_net
     yield
 
     ml_models.clear()
-
 app = FastAPI(lifespan=lifespan)
 
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
+
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
+    if not os.path.exists(sqlite_file_name):
+        print("application is starting...")
+        create_db_and_tables()
 
 
 @app.get("/")
 def hello():
     return { "helth_check" : "OK", "model_version": model_version }
 
+@app.get("/check-diabetes", response_class=HTMLResponse)
+async def predict_diabetes_page(request: Request):
+    return templates.TemplateResponse(request=request, name='index.html')
+
+
 @app.post("/check-diabetes")
-async def predict_diabetes(data: Data, session: SessionDep) -> dict:
-   
+async def predict_diabetes(data: Data, session: SessionDep) -> Data:
+
+
+    mean = np.loadtxt('/root/documents/pima-classifier-fast-api/data/mean.csv')
+    std = np.loadtxt('/root/documents/pima-classifier-fast-api/data/std.csv')
+
     arr = [
-        data.no_of_times_pregnant,
-        data.plasma_glucose_concentration,
-        data.diastolic_blood_pressure,
-        data.triceps_skin_fold_thickness,
-        data.two_hour_serum_insulin,
-        data.body_mass_index,
-        data.diabetes_pedigree_function,
-        data.age,
+        (data.no_of_times_pregnant - mean[0]) / std[0],
+        (data.plasma_glucose_concentration - mean[1])/ std[1],
+        (data.diastolic_blood_pressure - mean[2]) / std[2],
+        (data.triceps_skin_fold_thickness - mean[3]) / std[3],
+        (data.two_hour_serum_insulin - mean[4]) / std[4],
+        (data.body_mass_index - mean[5]) / std[5],
+        (data.diabetes_pedigree_function - mean[6]) / std[6],
+        (data.age - mean[7]) / std[7],
     ]
 
-    #for elm in data:
-    #    arr.append(elm[1])
-    #    print(elm)
-
-    #arr.pop(0)
-    #arr.pop(-1)
-
     result = ml_models["diabetes_nn"](arr)
-    data.result = result["prediction"]
-    #copy = dict(data)
+    data.result = result
 
-    #print(result["prediction"])
-    #copy["result"] = result["prediction"]
+    try:
+        session.add(data)
+        session.commit()
+        session.refresh(data)
+    except Exception as e:
+        print(f"Error saving data to database: {e}")
+        raise HTTPException(status_code=500, detail="Error saving data to database.")
 
-    #print("updated copy")
-    #print(copy)
-
-    #copy = Data(**copy)
-
-    print(data)
-
-    session.add(data)
-    session.commit()
-    session.refresh(data)
-
-    return result
+    return data 
 
 
-#@app.get("/get-data")
-#async def get_previous_data(session: SessionDep) -> list[Data]:
-#    data = session.exec(select(Data).offset(0).limit(10)).all()
-#
-#    return data
+@app.get("/get-data")
+async def get_previous_data(session: SessionDep):
+    data = session.exec(select(Data).offset(0).limit(10)).all()
+
+    return data
+
