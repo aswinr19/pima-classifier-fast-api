@@ -1,3 +1,4 @@
+import math
 import torch
 import numpy as np
 import torch.nn as nn
@@ -25,6 +26,21 @@ class PimaIndiansDiabetesClassifier:
     
     self.X = np.delete(self.X, columns_to_drop, axis=1)
     self.input_size = self.input_size - len(columns_to_drop)
+
+  def save_mean_and_std(self):
+      mean = []
+      std = []
+ 
+      print(self.X.shape)
+      
+      for i in range(self.X.shape[1]):
+            mean.append(np.mean(self.X[:][i]))
+            std.append(np.std(self.X[:][i]))
+
+      np.savetxt( '/root/documents/pima-classifier-fast-api/data/mean.csv', mean, delimiter=',')
+      np.savetxt( '/root/documents/pima-classifier-fast-api/data/std.csv', std, delimiter=',')
+      print(mean)
+      print(std)
 
   def fill_zeros(self,idx,n):
     for i in idx:
@@ -66,7 +82,7 @@ class PimaIndiansDiabetesClassifier:
     self.loss_fn = nn.BCELoss()
     self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
 
-  def train(self, epochs=40, batch_size=11):
+  def train(self, epochs=100, batch_size=11):
     self.epochs = epochs
     self.batch_size = batch_size
     self.train_loss = []
@@ -108,11 +124,12 @@ dataset = np.loadtxt('/root/documents/pima-classifier-fast-api/data/pima.csv', d
 pima = PimaIndiansDiabetesClassifier(dataset,0,8)
 pima.find_correlation([0,1,2,3,4,5,6,7])
 pima.fill_zeros([1, 2, 3, 4, 5],10)
-pima.scale("rob")
+pima.scale("std")
 pima.split(0.2,42)
 pima.add_noise(0,0.1,0.9)
 pima.type_cast()
 pima.init_model(12,16,8,0.0001)
-pima.train(40,10)
+pima.train(100,10)
+pima.save_mean_and_std()
 print(f"accuracy: {pima.find_acc()}")
 pima.save_model()
