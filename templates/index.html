@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .form-container {
+            max-width: 400px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+      .result-container {
+            max-width: 400px;
+            margin: auto;
+            margin-top: 10px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Diabetes Prediction Form</h2>
+        <form action="/check-diabetes" method="post">
+            <div class="form-group">
+                <label for="no_of_times_pregnant">Number of Times Pregnant:</label>
+                <input type="number" id="no_of_times_pregnant" name="no_of_times_pregnant" step="1" required>
+            </div>
+            <div class="form-group">
+                <label for="plasma_glucose_concentration">Plasma Glucose Concentration:</label>
+                <input type="number" id="plasma_glucose_concentration" name="plasma_glucose_concentration" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="diastolic_blood_pressure">Diastolic Blood Pressure:</label>
+                <input type="number" id="diastolic_blood_pressure" name="diastolic_blood_pressure" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="triceps_skin_fold_thickness">Triceps Skin Fold Thickness:</label>
+                <input type="number" id="triceps_skin_fold_thickness" name="triceps_skin_fold_thickness" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="two_hour_serum_insulin">Two-Hour Serum Insulin:</label>
+                <input type="number" id="two_hour_serum_insulin" name="two_hour_serum_insulin" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="body_mass_index">Body Mass Index:</label>
+                <input type="number" id="body_mass_index" name="body_mass_index" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="diabetes_pedigree_function">Diabetes Pedigree Function:</label>
+                <input type="number" id="diabetes_pedigree_function" name="diabetes_pedigree_function" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="age">Age:</label>
+                <input type="number" id="age" name="age" step="1" required>
+            </div>
+            <button type="submit" id="btn">Submit</button>
+        </form>
+    </div>
+
+      <div class="result-container" id="result"> </div>
+    <script>
+        let no_of_times_pregnant_elm = document.getElementById("no_of_times_pregnant");
+        let plasma_glucose_concentration_elm = document.getElementById("plasma_glucose_concentration");
+        let diastolic_blood_pressure_elm = document.getElementById("diastolic_blood_pressure");
+        let triceps_skin_fold_thickness_elm = document.getElementById("triceps_skin_fold_thickness");
+        let two_hour_serum_insulin_elm = document.getElementById("two_hour_serum_insulin");
+        let body_mass_index_elm = document.getElementById("body_mass_index");
+        let diabetes_pedigree_function_elm = document.getElementById("diabetes_pedigree_function");
+        let age_elm = document.getElementById("age");
+        let btn_elm = document.getElementById("btn");
+        let result_elm = document.getElementById("result");
+
+        btn.addEventListener("click", async (event) => {
+          event.preventDefault(); 
+
+           let plasma_glucose_concentration = plasma_glucose_concentration_elm.value;
+           let no_of_times_pregnant = no_of_times_pregnant_elm.value;  
+           let diastolic_blood_pressure = diastolic_blood_pressure_elm.value;
+           let triceps_skin_fold_thickness = triceps_skin_fold_thickness_elm.value;
+           let two_hour_serum_insulin = two_hour_serum_insulin_elm.value;
+           let body_mass_index = body_mass_index_elm.value;
+           let diabetes_pedigree_function = diabetes_pedigree_function_elm.value;
+           let age = age_elm.value;
+
+          try {
+
+            let response = await fetch('http://127.0.0.1:8000/check-diabetes', {
+                                        method: "POST",
+                                        headers: {
+                                           'Accept': 'application/json',
+                                           'Content-Type': 'application/json'
+                                        },
+
+                                        body: JSON.stringify({
+                                                no_of_times_pregnant,                          
+                                                plasma_glucose_concentration,
+                                                diastolic_blood_pressure, 
+                                                triceps_skin_fold_thickness, 
+                                                two_hour_serum_insulin,
+                                                body_mass_index,
+                                                diabetes_pedigree_function,
+                                                age
+                                        })
+          });
+
+
+          let result = await response.json();
+
+          console.log(result)
+          
+            if (result.result == 0) result_elm.textContent = "Test result negative :)";
+            else if (result.result == 1) result_elm.textContent = "Test result positive :("
+
+          } catch(err) { console.log(err); }
+
+        });
+
+    </script>
+</body>
+</html>
+
