@@ -92,9 +92,6 @@ async def lifespan(app: FastAPI):
     mean = np.loadtxt('/root/documents/pima-classifier-fast-api/data/mean.csv')
     std = np.loadtxt('/root/documents/pima-classifier-fast-api/data/std.csv')
 
-    print(mean)
-    print(std)
-
     ml_models["diabetes_nn"] = diabetes_prediction_neural_net
     yield
 
@@ -106,12 +103,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
-@app.on_event("startup")
-def on_startup():
-    if not os.path.exists(sqlite_file_name):
-        print("application is starting...")
-        create_db_and_tables()
-
+#@app.on_event("startup")
+#def on_startup():
+#    if not os.path.exists(sqlite_file_name):
+#        print("application is starting...")
+#        create_db_and_tables()
+#
 
 @app.get("/")
 def hello():
@@ -125,21 +122,31 @@ async def predict_diabetes_page(request: Request):
 @app.post("/check-diabetes")
 async def predict_diabetes(data: Data, session: SessionDep) -> Data:
 
-
     mean = np.loadtxt('/root/documents/pima-classifier-fast-api/data/mean.csv')
     std = np.loadtxt('/root/documents/pima-classifier-fast-api/data/std.csv')
 
-    arr = [
-        (data.no_of_times_pregnant - mean[0]) / std[0],
-        (data.plasma_glucose_concentration - mean[1])/ std[1],
-        (data.diastolic_blood_pressure - mean[2]) / std[2],
-        (data.triceps_skin_fold_thickness - mean[3]) / std[3],
-        (data.two_hour_serum_insulin - mean[4]) / std[4],
-        (data.body_mass_index - mean[5]) / std[5],
-        (data.diabetes_pedigree_function - mean[6]) / std[6],
-        (data.age - mean[7]) / std[7],
-    ]
+    print("here")
+    print(data.no_of_times_pregnant)
+    print(data.plasma_glucose_concentration)
+    print(data.diastolic_blood_pressure)
+    print(data.triceps_skin_fold_thickness)
+    print(data.two_hour_serum_insulin)
+    print(data.body_mass_index)
+    print(data.diabetes_pedigree_function)
+    print(data.age)
 
+    arr = [
+        (float(data.no_of_times_pregnant) - mean[0]) / std[0],
+        (float(data.plasma_glucose_concentration) - mean[1])/ std[1],
+        (float(data.diastolic_blood_pressure) - mean[2]) / std[2],
+        (float(data.triceps_skin_fold_thickness) - mean[3]) / std[3],
+        (float(data.two_hour_serum_insulin) - mean[4]) / std[4],
+        (float(data.body_mass_index) - mean[5]) / std[5],
+        (float(data.diabetes_pedigree_function) - mean[6]) / std[6],
+        (float(data.age) - mean[7]) / std[7],
+    ]
+    
+    print(arr)
     result = ml_models["diabetes_nn"](arr)
     data.result = result
 
