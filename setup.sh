@@ -11,7 +11,7 @@ if [ $? != 0 ]; then
 
   tmux new-window -t $SESH -n "run"
   tmux send-keys -t $SESH:run "source bin/activate" C-m
-  tmux send-keys -t $SESH:run "clear" C-m
+  tmux send-keys -t $SESH:run "fastapi dev src/main.py" C-m
 
   tmux select-window -t $SESH:neovim
 fi
